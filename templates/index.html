@@ -41,10 +41,17 @@
             </div>
 
             <div class="form-actions">
-                <button type="submit" class="btn btn-primary" id="analyze-btn" disabled>Analyze Document</button>
+                <div class="analyze-action">
+                    <button type="submit" class="btn btn-primary" id="analyze-btn" disabled>Analyze Document</button>
+                    <span class="analyze-note">May take up to 5 minutes</span>
+                </div>
                 <div class="sample-action">
-                    <button type="button" class="btn btn-secondary" onclick="loadSample()">Sample Data</button>
-                    <a href="{{ url_for('download_sample') }}" class="download-link">(download: leibniz-evil.docx)</a>
+                    <button type="button" class="btn btn-secondary" onclick="loadSampleDocx()">Sample DOCX Data</button>
+                    <a href="{{ url_for('download_sample', filename='leibniz-evil.docx') }}" class="download-link">(download)</a>
+                </div>
+                <div class="sample-action">
+                    <button type="button" class="btn btn-secondary" onclick="loadSampleHtml()">Sample HTML Data</button>
+                    <a href="{{ url_for('download_sample', filename='leibniz-evil-old.html') }}" class="download-link">(download)</a>
                 </div>
                 <button type="button" class="btn btn-secondary" onclick="clearAll()">Clear</button>
             </div>
@@ -190,7 +197,15 @@ async function analyzeDocument() {
     }
 }
 
-async function loadSample() {
+async function loadSampleDocx() {
+    await loadSample('docx');
+}
+
+async function loadSampleHtml() {
+    await loadSample('html');
+}
+
+async function loadSample(type) {
     loading.hidden = false;
     resultsSection.hidden = true;
     dismissError();
@@ -200,7 +215,7 @@ async function loadSample() {
     const selectedModel = document.getElementById('model').value;
 
     try {
-        const response = await fetch(`/sample?model=${encodeURIComponent(selectedModel)}`);
+        const response = await fetch(`/sample?model=${encodeURIComponent(selectedModel)}&type=${encodeURIComponent(type)}`);
         const data = await response.json();
 
         if (!response.ok) {

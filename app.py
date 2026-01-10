@@ -126,8 +126,16 @@ def analyze():
 @app.route('/sample')
 @login_required
 def load_sample():
-    """Load the sample Leibniz document for demonstration."""
-    sample_path = os.path.join(app.root_path, 'sample_data', 'leibniz-evil.docx')
+    """Load a sample document for demonstration."""
+    # Get sample type from query string (docx or html)
+    sample_type = request.args.get('type', 'docx')
+
+    if sample_type == 'html':
+        sample_filename = 'leibniz-evil-old.html'
+    else:
+        sample_filename = 'leibniz-evil.docx'
+
+    sample_path = os.path.join(app.root_path, 'sample_data', sample_filename)
 
     if not os.path.exists(sample_path):
         return jsonify({'error': 'Sample file not found'}), 404
@@ -140,7 +148,7 @@ def load_sample():
             file_content = f.read()
 
         # Parse the document
-        main_text, bibliography_text = get_document_text(file_content, 'leibniz-evil.docx')
+        main_text, bibliography_text = get_document_text(file_content, sample_filename)
 
         # Check if bibliography was found
         if not bibliography_text.strip():
@@ -166,10 +174,15 @@ def load_sample():
 @app.route('/download-sample')
 @login_required
 def download_sample():
-    """Download the sample Leibniz document."""
+    """Download a sample document."""
+    filename = request.args.get('filename', 'leibniz-evil.docx')
+    # Security: only allow specific filenames
+    allowed_files = ['leibniz-evil.docx', 'leibniz-evil-old.html']
+    if filename not in allowed_files:
+        return jsonify({'error': 'Invalid filename'}), 400
     return send_from_directory(
         os.path.join(app.root_path, 'sample_data'),
-        'leibniz-evil.docx',
+        filename,
         as_attachment=True
     )
 
