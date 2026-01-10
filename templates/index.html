@@ -1,0 +1,330 @@
+{% extends "base.html" %}
+
+{% block title %}SEP Copyediting Assistant{% endblock %}
+
+{% block content %}
+<header>
+    <h1>SEP Copyediting Assistant</h1>
+    <div class="header-actions">
+        <a href="{{ url_for('logout') }}" class="btn btn-secondary btn-small">Logout</a>
+    </div>
+</header>
+
+<main>
+    <section class="upload-section">
+        <h2>Upload Document</h2>
+        <p>Upload a .docx or .html file to analyze for citation and bibliography issues.</p>
+
+        <form id="upload-form" enctype="multipart/form-data">
+            <div class="file-upload-area" id="drop-zone">
+                <input type="file" id="document" name="document" accept=".docx,.html,.htm" hidden>
+                <div class="upload-prompt">
+                    <span class="upload-icon">📄</span>
+                    <p>Drag and drop your file here, or <button type="button" class="link-button" onclick="document.getElementById('document').click()">browse</button></p>
+                    <p class="file-types">Accepts .docx and .html files</p>
+                </div>
+                <div class="file-selected" id="file-selected" hidden>
+                    <span class="file-name" id="file-name"></span>
+                    <button type="button" class="btn-clear" onclick="clearFile()">×</button>
+                </div>
+            </div>
+
+            <div class="model-selector">
+                <label for="model">AI Model:</label>
+                <select id="model" name="model">
+                    {% for model_id, model_info in models.items() %}
+                    <option value="{{ model_id }}" {% if model_id == default_model %}selected{% endif %}>
+                        {{ model_info.name }} ({{ model_info.description }})
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary" id="analyze-btn" disabled>Analyze Document</button>
+                <div class="sample-action">
+                    <button type="button" class="btn btn-secondary" onclick="loadSample()">Sample Data</button>
+                    <a href="{{ url_for('download_sample') }}" class="download-link">(download: leibniz-evil.docx)</a>
+                </div>
+                <button type="button" class="btn btn-secondary" onclick="clearAll()">Clear</button>
+            </div>
+        </form>
+    </section>
+
+    <section class="results-section" id="results-section" hidden>
+        <h2>Analysis Results</h2>
+
+        <div class="summary" id="summary"></div>
+
+        <div class="results-tabs">
+            <button class="tab-btn active" data-tab="orphan-citations">Orphan Citations</button>
+            <button class="tab-btn" data-tab="orphan-bibliography">Orphan Bibliography</button>
+            <button class="tab-btn" data-tab="format-issues">Format Issues</button>
+        </div>
+
+        <div class="tab-content" id="orphan-citations">
+            <p class="tab-description">Citations in the text that have no matching bibliography entry.</p>
+            <div class="issues-list" id="orphan-citations-list"></div>
+        </div>
+
+        <div class="tab-content" id="orphan-bibliography" hidden>
+            <p class="tab-description">Bibliography entries that are never cited in the text.</p>
+            <div class="issues-list" id="orphan-bibliography-list"></div>
+        </div>
+
+        <div class="tab-content" id="format-issues" hidden>
+            <p class="tab-description">Bibliography entries with formatting issues.</p>
+            <div class="issues-list" id="format-issues-list"></div>
+        </div>
+    </section>
+
+    <div class="loading" id="loading" hidden>
+        <div class="spinner"></div>
+        <p>Analyzing document...</p>
+    </div>
+
+    <div class="error-banner" id="error-banner" hidden>
+        <span class="error-text" id="error-text"></span>
+        <button type="button" class="btn-dismiss" onclick="dismissError()">×</button>
+    </div>
+</main>
+
+<footer>
+    <p>SEP Copyediting Assistant v2.0 | For internal SEP editor use only</p>
+    <p class="future-note">Future versions may include: corrected document output, interactive editing, persistent bibliography database</p>
+</footer>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const uploadForm = document.getElementById('upload-form');
+const fileInput = document.getElementById('document');
+const dropZone = document.getElementById('drop-zone');
+const fileSelected = document.getElementById('file-selected');
+const fileName = document.getElementById('file-name');
+const analyzeBtn = document.getElementById('analyze-btn');
+const resultsSection = document.getElementById('results-section');
+const loading = document.getElementById('loading');
+const errorBanner = document.getElementById('error-banner');
+const errorText = document.getElementById('error-text');
+
+// File input handling
+fileInput.addEventListener('change', function() {
+    if (this.files.length > 0) {
+        showSelectedFile(this.files[0].name);
+    }
+});
+
+// Drag and drop
+dropZone.addEventListener('dragover', function(e) {
+    e.preventDefault();
+    this.classList.add('dragover');
+});
+
+dropZone.addEventListener('dragleave', function(e) {
+    e.preventDefault();
+    this.classList.remove('dragover');
+});
+
+dropZone.addEventListener('drop', function(e) {
+    e.preventDefault();
+    this.classList.remove('dragover');
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+        fileInput.files = files;
+        showSelectedFile(files[0].name);
+    }
+});
+
+function showSelectedFile(name) {
+    document.querySelector('.upload-prompt').hidden = true;
+    fileSelected.hidden = false;
+    fileName.textContent = name;
+    analyzeBtn.disabled = false;
+}
+
+function clearFile() {
+    fileInput.value = '';
+    document.querySelector('.upload-prompt').hidden = false;
+    fileSelected.hidden = true;
+    fileName.textContent = '';
+    analyzeBtn.disabled = true;
+}
+
+function clearAll() {
+    clearFile();
+    resultsSection.hidden = true;
+    dismissError();
+}
+
+// Form submission
+uploadForm.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    await analyzeDocument();
+});
+
+async function analyzeDocument() {
+    const formData = new FormData(uploadForm);
+
+    loading.hidden = false;
+    resultsSection.hidden = true;
+    dismissError();
+
+    try {
+        const response = await fetch('/analyze', {
+            method: 'POST',
+            body: formData
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.error || 'Analysis failed');
+        }
+
+        displayResults(data);
+    } catch (error) {
+        showError(error.message);
+    } finally {
+        loading.hidden = true;
+    }
+}
+
+async function loadSample() {
+    loading.hidden = false;
+    resultsSection.hidden = true;
+    dismissError();
+    clearFile();
+
+    // Get selected model
+    const selectedModel = document.getElementById('model').value;
+
+    try {
+        const response = await fetch(`/sample?model=${encodeURIComponent(selectedModel)}`);
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.error || 'Failed to load sample');
+        }
+
+        displayResults(data);
+    } catch (error) {
+        showError(error.message);
+    } finally {
+        loading.hidden = true;
+    }
+}
+
+function displayResults(data) {
+    // Update summary
+    const summary = document.getElementById('summary');
+    const s = data.summary;
+    summary.innerHTML = `
+        <div class="summary-item">
+            <span class="summary-number">${s.total_citations}</span>
+            <span class="summary-label">Citations Found</span>
+        </div>
+        <div class="summary-item">
+            <span class="summary-number">${s.total_bibliography}</span>
+            <span class="summary-label">Bibliography Entries</span>
+        </div>
+        <div class="summary-item ${s.orphan_citations_count > 0 ? 'has-issues' : ''}">
+            <span class="summary-number">${s.orphan_citations_count}</span>
+            <span class="summary-label">Orphan Citations</span>
+        </div>
+        <div class="summary-item ${s.orphan_bibliography_count > 0 ? 'has-issues' : ''}">
+            <span class="summary-number">${s.orphan_bibliography_count}</span>
+            <span class="summary-label">Orphan Bibliography</span>
+        </div>
+        <div class="summary-item ${s.format_issues_count > 0 ? 'has-issues' : ''}">
+            <span class="summary-number">${s.format_issues_count}</span>
+            <span class="summary-label">Format Issues</span>
+        </div>
+    `;
+
+    // Update tab counts
+    document.querySelector('[data-tab="orphan-citations"]').textContent =
+        `Orphan Citations (${s.orphan_citations_count})`;
+    document.querySelector('[data-tab="orphan-bibliography"]').textContent =
+        `Orphan Bibliography (${s.orphan_bibliography_count})`;
+    document.querySelector('[data-tab="format-issues"]').textContent =
+        `Format Issues (${s.format_issues_count})`;
+
+    // Populate orphan citations
+    const orphanCitationsList = document.getElementById('orphan-citations-list');
+    if (data.orphan_citations.length === 0) {
+        orphanCitationsList.innerHTML = '<p class="no-issues">No orphan citations found.</p>';
+    } else {
+        orphanCitationsList.innerHTML = data.orphan_citations.map(item => `
+            <div class="issue-item ${item.confidence === 'low' ? 'low-confidence' : ''}">
+                <div class="issue-content">
+                    <span class="issue-text">${escapeHtml(item.citation)}</span>
+                    ${item.location ? `<span class="issue-context">${escapeHtml(item.location)}</span>` : ''}
+                </div>
+                ${item.confidence === 'low' ? '<span class="confidence-badge">Low Confidence</span>' : ''}
+            </div>
+        `).join('');
+    }
+
+    // Populate orphan bibliography
+    const orphanBibList = document.getElementById('orphan-bibliography-list');
+    if (data.orphan_bibliography.length === 0) {
+        orphanBibList.innerHTML = '<p class="no-issues">No orphan bibliography entries found.</p>';
+    } else {
+        orphanBibList.innerHTML = data.orphan_bibliography.map(item => `
+            <div class="issue-item ${item.confidence === 'low' ? 'low-confidence' : ''}">
+                <div class="issue-content">
+                    <span class="issue-text">${escapeHtml(item.entry)}</span>
+                </div>
+                ${item.confidence === 'low' ? '<span class="confidence-badge">Low Confidence</span>' : ''}
+            </div>
+        `).join('');
+    }
+
+    // Populate format issues
+    const formatIssuesList = document.getElementById('format-issues-list');
+    if (data.format_issues.length === 0) {
+        formatIssuesList.innerHTML = '<p class="no-issues">No formatting issues found.</p>';
+    } else {
+        formatIssuesList.innerHTML = data.format_issues.map(item => `
+            <div class="issue-item ${item.confidence === 'low' ? 'low-confidence' : ''}">
+                <div class="issue-content">
+                    <span class="issue-text">${escapeHtml(item.entry)}</span>
+                    <span class="issue-description">${escapeHtml(item.issue)}</span>
+                    ${item.suggestion ? `<span class="issue-suggestion">Suggestion: ${escapeHtml(item.suggestion)}</span>` : ''}
+                </div>
+                ${item.confidence === 'low' ? '<span class="confidence-badge">Low Confidence</span>' : ''}
+            </div>
+        `).join('');
+    }
+
+    resultsSection.hidden = false;
+}
+
+// Tab switching
+document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.hidden = true);
+
+        this.classList.add('active');
+        document.getElementById(this.dataset.tab).hidden = false;
+    });
+});
+
+function showError(message) {
+    errorText.textContent = message;
+    errorBanner.hidden = false;
+}
+
+function dismissError() {
+    errorBanner.hidden = true;
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+</script>
+{% endblock %}

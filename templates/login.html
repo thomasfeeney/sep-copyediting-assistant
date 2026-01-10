@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block title %}Login - SEP Copyediting Assistant{% endblock %}
+
+{% block content %}
+<div class="login-container">
+    <h1>SEP Copyediting Assistant</h1>
+    <p class="subtitle">Stanford Encyclopedia of Philosophy</p>
+
+    <form method="POST" class="login-form">
+        {% if error %}
+        <div class="error-message">{{ error }}</div>
+        {% endif %}
+
+        <div class="form-group">
+            <label for="password">Password</label>
+            <input type="password" id="password" name="password" required autofocus>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Login</button>
+    </form>
+</div>
+{% endblock %}
