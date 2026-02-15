@@ -105,3 +105,17 @@ Every push to `main` auto-deploys to Cloud Run via GitHub Actions.
 - **Bibliography**: Author, First, Year, "Title", *Journal*, Vol(Issue): pages.
 - **Online materials**: `[Available online]` or `[Author Year available online]`
 - **In-text ampersand**: `(Author & Author Year)` is accepted in parenthetical citations
+
+## Priority TODO
+
+1. **Migrate Gemini SDK** (`google-generativeai` -> `google-genai`). The old package was
+   deprecated Nov 2025 and is no longer receiving updates. Migration is confined to
+   `services/gemini_analyzer.py` and `requirements.txt`. Key changes:
+   - `import google.generativeai as genai` -> `from google import genai` + `from google.genai import types`
+   - `genai.configure(api_key=...)` -> `client = genai.Client(api_key=...)`
+   - `genai.GenerativeModel(model_name=..., system_instruction=...)` -> pass both per-call
+   - `model.generate_content(prompt, generation_config=genai.GenerationConfig(...))` ->
+     `client.models.generate_content(model=..., contents=..., config=types.GenerateContentConfig(...))`
+   - `system_instruction` moves from model constructor into `GenerateContentConfig`
+   - `response.text` unchanged; JSON parsing/repair logic should not need changes
+   - pip: `google-generativeai>=0.8.0` -> `google-genai>=1.0.0`
