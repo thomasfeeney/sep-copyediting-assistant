@@ -27,7 +27,7 @@ pip install -r requirements.txt
 
 # Configure environment - create .env with:
 #   GOOGLE_API_KEY=your-key-here
-#   SEP_PASSWORD=SEPeditor  (optional, default)
+#   SEP_PASSWORD=your-chosen-password
 
 # Run development server
 python app.py
@@ -42,11 +42,11 @@ python app.py
 ├── app.py                 # Flask routes: /, /login, /analyze, /sample
 ├── config.py              # Environment config, model settings
 ├── services/
-│   ├── document_parser.py # Parses .docx/.html, preserves italics
-│   └── gemini_analyzer.py # Gemini API integration, JSON parsing
+│   ├── document_parser.py # Parses .docx/.html, strips editorial markup, preserves italics
+│   └── gemini_analyzer.py # Gemini API integration, JSON parsing/repair
 ├── prompts/
 │   └── sep_style.py       # SEP citation rules for LLM prompts
-├── templates/             # Jinja2 templates
+├── templates/             # Jinja2 templates (login, main UI)
 ├── static/style.css       # Stanford cardinal red theme
 ├── sample_data/           # Sample documents for demo
 └── Dockerfile             # Cloud Run container
@@ -57,12 +57,30 @@ python app.py
 ### Document Parsing (`services/document_parser.py`)
 - Searches from END of document for "Bibliography" heading
 - Preserves italics as `<i>...</i>` markers for LLM analysis
+- Strips `<span class="todo_note">` editorial comments from HTML
+- Strips endnote links (`notes.html`) from HTML to avoid confusing `[1]`, `[2]` markers with citations
 - Supports both .docx and .html input
+
+### LLM Prompt (`prompts/sep_style.py`)
+- Encodes SEP bibliography format rules (journal articles, books, edited volumes, reprints, etc.)
+- Handles historical works with modern editions, classical works without anachronistic dates
+- Accepts ampersand (&) in parenthetical citations (SEP house style)
+- Accepts `[Author Year available online]` accessibility format
+- Distinguishes en-dashes in page ranges from hyphens in DOIs
+- Instructs LLM to ignore endnote markers
 
 ### Gemini Integration (`services/gemini_analyzer.py`)
 - Uses `max_output_tokens=32768` for large documents
 - Includes JSON extraction and repair logic for truncated responses
 - Prompt asks for counts + issues only to keep response size manageable
+
+## Environment Variables
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `GOOGLE_API_KEY` | Yes | Gemini API key |
+| `SEP_PASSWORD` | Yes | Password for login gate (no default; must be set) |
+| `SECRET_KEY` | No | Flask session secret |
 
 ## CI/CD
 
@@ -79,9 +97,11 @@ Every push to `main` auto-deploys to Cloud Run via GitHub Actions.
 - **Region**: us-west1
 - **Secret Manager**: GOOGLE_API_KEY (Gemini API key)
 
-## SEP Citation Style Rules
+## SEP Citation Style Rules (in prompts/sep_style.py)
 
 - **Standard**: `(Author Year, page)` or `Author (Year, page)`
 - **Historical works**: `(Author OriginalYear [ModernYear, page])`
 - **Classical works**: `(Title, location)` - NO anachronistic dates
 - **Bibliography**: Author, First, Year, "Title", *Journal*, Vol(Issue): pages.
+- **Online materials**: `[Available online]` or `[Author Year available online]`
+- **In-text ampersand**: `(Author & Author Year)` is accepted in parenthetical citations

@@ -56,13 +56,19 @@ Example: Terrell, Nicholas, 1888 [1999], "How to Gimble", Proceedings of the Jab
 - Book titles and journal names in italics
 - Article/chapter titles in quotes
 - Publisher location before publisher name
-- Page ranges use en-dash (–) not hyphen (-)
-- Multiple authors joined with "and" not "&" in running text
+- Page ranges use en-dash (–) not hyphen (-). Do NOT flag page ranges that already use en-dashes.
+  Hyphens within DOI strings (e.g., doi:10.1234/xx-xx) are correct and should NOT be flagged.
+- Multiple authors: use "and" in running text (e.g., "Bond and Wimsey (2023) argue...").
+  Ampersand (&) is acceptable inside parenthetical citations, e.g., (Bond & Wimsey 2023).
+  Do NOT flag ampersands in parenthetical citations as errors.
 
 ### Online Materials:
 - [Available online] - for publisher's website
 - [Preprint available online] - for independent archive
 - [Preprint available from the author] - for author's website
+- [Author Year available online] (e.g., "[Banti 2020 available online]") is also acceptable.
+  The SEP uses this extended form for accessibility, so that links going to different places
+  have distinct link text. Do NOT flag this as an error.
 """
 
 ANALYSIS_PROMPT = """Analyze the following document for SEP citation and bibliography compliance.
@@ -81,6 +87,7 @@ ANALYSIS_PROMPT = """Analyze the following document for SEP citation and bibliog
 - For classical works, "(Parmenides, 132a)" should match a Plato bibliography entry containing "Parmenides"
 - Handle author name variations (Smith vs. Smith, J. vs. John Smith)
 - Handle year suffixes (2020a, 2020b)
+- Endnote markers like [1], [2], etc. (superscripted numbers linking to notes) are NOT citations. Ignore them.
 - Be lenient: only report genuine mismatches, not minor variations
 
 ## Response Format:

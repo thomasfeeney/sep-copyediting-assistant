@@ -98,6 +98,15 @@ def parse_html(file_content: bytes) -> Tuple[str, str]:
     for element in soup(['script', 'style', 'meta', 'link']):
         element.decompose()
 
+    # Remove SEP editorial todo_note comments (e.g., <span class="todo_note">***words*</span>)
+    for element in soup.find_all(class_='todo_note'):
+        element.decompose()
+
+    # Remove endnote markers (superscripted links to notes.html like [1], [2], etc.)
+    for a_tag in soup.find_all('a', href=True):
+        if 'notes.html' in a_tag['href']:
+            a_tag.decompose()
+
     # Find bibliography section
     bib_section = None
     bib_header = None

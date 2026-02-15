@@ -12,6 +12,10 @@ from services.gemini_analyzer import GeminiAnalyzer
 app = Flask(__name__)
 app.config.from_object(Config)
 
+if not app.config['SEP_PASSWORD']:
+    import warnings
+    warnings.warn("SEP_PASSWORD not set. Login will be disabled. Set it in .env or environment.")
+
 
 def get_analyzer(model_name: str = None):
     """Create a Gemini analyzer with the specified model."""

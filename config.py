@@ -6,7 +6,7 @@ load_dotenv()
 class Config:
     SECRET_KEY = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-production')
     GOOGLE_API_KEY = os.getenv('GOOGLE_API_KEY', '')
-    SEP_PASSWORD = os.getenv('SEP_PASSWORD', 'SEPeditor')
+    SEP_PASSWORD = os.getenv('SEP_PASSWORD', '')
     MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16MB max upload
 
     # Available Gemini models
