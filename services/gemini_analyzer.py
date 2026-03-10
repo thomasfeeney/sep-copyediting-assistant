@@ -5,7 +5,8 @@ Gemini LLM integration for citation/bibliography analysis.
 import json
 import re
 from typing import Optional
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 from prompts.sep_style import SYSTEM_PROMPT, ANALYSIS_PROMPT
 
 
@@ -53,7 +54,7 @@ class AnalysisResult:
 class GeminiAnalyzer:
     """Analyzer using Google Gemini for SEP document analysis."""
 
-    def __init__(self, api_key: str, model_name: str = 'gemini-2.0-flash'):
+    def __init__(self, api_key: str, model_name: str = 'gemini-3-flash-preview'):
         """
         Initialize the Gemini analyzer.
 
@@ -64,11 +65,8 @@ class GeminiAnalyzer:
         if not api_key:
             raise ValueError("GOOGLE_API_KEY is required")
 
-        genai.configure(api_key=api_key)
-        self.model = genai.GenerativeModel(
-            model_name=model_name,
-            system_instruction=SYSTEM_PROMPT
-        )
+        self.client = genai.Client(api_key=api_key)
+        self.model_name = model_name
 
     def analyze_document(self, main_text: str, bibliography_text: str) -> AnalysisResult:
         """
@@ -93,9 +91,11 @@ class GeminiAnalyzer:
         prompt = ANALYSIS_PROMPT + document
 
         try:
-            response = self.model.generate_content(
-                prompt,
-                generation_config=genai.GenerationConfig(
+            response = self.client.models.generate_content(
+                model=self.model_name,
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    system_instruction=SYSTEM_PROMPT,
                     temperature=1.0,
                     max_output_tokens=32768,
                 )
@@ -242,9 +242,11 @@ Document:
 """ + full_text
 
         try:
-            response = self.model.generate_content(
-                prompt,
-                generation_config=genai.GenerationConfig(
+            response = self.client.models.generate_content(
+                model=self.model_name,
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    system_instruction=SYSTEM_PROMPT,
                     temperature=0.1,
                 )
             )
