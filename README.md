@@ -15,7 +15,7 @@ AI-powered copyediting assistant for the [Stanford Encyclopedia of Philosophy](h
 ## Tech Stack
 
 - **Framework**: Python Flask with Jinja2 templates
-- **LLM**: Google Gemini 3 Flash (`gemini-3-flash-preview`)
+- **LLM**: Google Gemini 3.5 Flash (`gemini-3.5-flash`, default) or Gemini 3 Flash (`gemini-3-flash-preview`)
 - **Document Parsing**: python-docx for .docx, BeautifulSoup for .html
 - **Deployment**: Google Cloud Run (auto-deployed via GitHub Actions)
 
