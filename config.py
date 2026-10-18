@@ -13,7 +13,7 @@ class Config:
     GEMINI_MODELS = {
         'gemini-3.5-flash': {
             'name': 'Gemini 3.5 Flash',
-            'description': 'new model - should be faster & better, but may introduce issues'
+            'description': 'new model - should be faster & better'
         },
         'gemini-3-flash-preview': {
             'name': 'Gemini 3 Flash',
