@@ -96,7 +96,6 @@ class GeminiAnalyzer:
                 contents=prompt,
                 config=types.GenerateContentConfig(
                     system_instruction=SYSTEM_PROMPT,
-                    temperature=1.0,
                     max_output_tokens=32768,
                 )
             )
@@ -238,6 +237,11 @@ class GeminiAnalyzer:
         prompt = """Examine the following document and extract ONLY the bibliography/references section.
 Return just the bibliography entries, one per line. If there is no clear bibliography section, return "NO_BIBLIOGRAPHY_FOUND".
 
+Copy each entry EXACTLY as it appears in the document, character for character:
+- Do NOT correct, reformat, reorder, complete, or merge entries, even if they contain errors.
+- Keep all punctuation, dashes, and <i>...</i> italic markers exactly as written.
+- Do NOT add commentary, numbering, or markdown.
+
 Document:
 """ + full_text
 
@@ -247,14 +251,33 @@ Document:
                 contents=prompt,
                 config=types.GenerateContentConfig(
                     system_instruction=SYSTEM_PROMPT,
-                    temperature=0.1,
+                    thinking_config=types.ThinkingConfig(thinking_level="low"),
                 )
             )
 
             result = response.text.strip()
             if result == "NO_BIBLIOGRAPHY_FOUND":
                 return None
-            return result
+            return self._keep_verbatim_lines(result, full_text)
 
         except Exception:
             return None
+
+    def _keep_verbatim_lines(self, extracted: str, source: str) -> Optional[str]:
+        """
+        Keep only extracted lines that appear verbatim in the source, so the
+        model can't silently correct entries we're meant to check.
+
+        Returns None if most lines don't match (likely a rewritten section).
+        """
+        def normalize(text: str) -> str:
+            text = re.sub(r'</?i>', '', text)
+            return re.sub(r'\s+', ' ', text).strip()
+
+        normalized_source = normalize(source)
+        lines = [line for line in extracted.splitlines() if line.strip()]
+        kept = [line for line in lines if normalize(line) in normalized_source]
+
+        if not lines or len(kept) < len(lines) / 2:
+            return None
+        return '\n'.join(kept)

@@ -110,3 +110,4 @@ Every push to `main` auto-deploys to Cloud Run via GitHub Actions.
 
 1. **Gemini SDK migrated** (`google-generativeai` -> `google-genai`) — March 2026
 2. **Added Gemini 3.5 Flash** (`gemini-3.5-flash`) as the default model, kept Gemini 3 Flash as fallback; bumped UI to v2.2 — June 2026
+3. **Removed deprecated temperature settings** per Google AI Studio notice; compensated in bibliography fallback extraction with stricter prompt, `thinking_level="low"`, and verbatim check; bumped UI to v2.3 — October 2026
