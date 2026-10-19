@@ -11,7 +11,7 @@ AI-powered copyediting assistant for the Stanford Encyclopedia of Philosophy (SE
 ## Tech Stack
 
 - **Framework**: Python Flask with Jinja2 templates
-- **LLM**: Google Gemini 3.5 Flash (`gemini-3.5-flash`, default) or Gemini 3 Flash (`gemini-3-flash-preview`)
+- **LLM**: Google Gemini 3.6 Flash (`gemini-3.6-flash`, default) or Gemini 3 Flash (`gemini-3-flash-preview`)
 - **Document Parsing**: python-docx for .docx, BeautifulSoup for .html
 - **Deployment**: Google Cloud Run (auto-deployed via GitHub Actions)
 
@@ -111,3 +111,4 @@ Every push to `main` auto-deploys to Cloud Run via GitHub Actions.
 1. **Gemini SDK migrated** (`google-generativeai` -> `google-genai`) — March 2026
 2. **Added Gemini 3.5 Flash** (`gemini-3.5-flash`) as the default model, kept Gemini 3 Flash as fallback; bumped UI to v2.2 — June 2026
 3. **Removed deprecated temperature settings** per Google AI Studio notice; compensated in bibliography fallback extraction with stricter prompt, `thinking_level="low"`, and verbatim check; bumped UI to v2.3 — October 2026
+4. **Migrated default model to Gemini 3.6 Flash** (`gemini-3.6-flash`) after Google deprecated and auto-redirected `gemini-3.5-flash`; bumped UI to v2.4 — October 2026

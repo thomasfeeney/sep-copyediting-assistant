@@ -11,13 +11,13 @@ class Config:
 
     # Available Gemini models
     GEMINI_MODELS = {
-        'gemini-3.5-flash': {
-            'name': 'Gemini 3.5 Flash',
-            'description': 'new model - should be faster & better'
+        'gemini-3.6-flash': {
+            'name': 'Gemini 3.6 Flash',
+            'description': 'current default'
         },
         'gemini-3-flash-preview': {
             'name': 'Gemini 3 Flash',
             'description': 'original option'
         }
     }
-    DEFAULT_MODEL = 'gemini-3.5-flash'
+    DEFAULT_MODEL = 'gemini-3.6-flash'
